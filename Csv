@@ -1,0 +1,796 @@
+# CsvConvert — CSV → Markdown / JSON for AI-agent handoff
+
+A single PowerShell 7 script with a full-screen text UI for Windows Terminal. Browse to a
+`.csv` / `.tsv` file, choose Markdown and/or JSON, convert, check the preview, repeat.
+No modules, no installs, no admin rights. The terminal is restored exactly as it was on exit.
+
+## Run
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File "C:\path\to\CsvConvert\app\CsvConvert.ps1"
+```
+
+From an already-open PowerShell 7 prompt, `.\CsvConvert.ps1` works too. Other forms:
+
+```powershell
+.\CsvConvert.ps1 -Path "C:\Data\inventory.csv"                 # open this file straight away
+.\CsvConvert.ps1 -InputDir "D:\exports" -OutputDir "D:\agent"  # one-off folder override
+```
+
+## Requirements
+
+- Windows 11, PowerShell 7.x (`pwsh`), Windows Terminal (the legacy console works but is less tested)
+- Nothing else: no modules, no Excel, no admin rights, no changes to the system
+
+## Folder layout
+
+```
+CsvConvert\
+├── app\
+│   ├── CsvConvert.ps1   ← the tool
+│   └── README.md        ← this file
+├── input\               ← drop CSV files here (the file browser starts here)
+└── output\              ← .md / .json files land here
+```
+
+The `input` and `output` folders are placeholders and are created automatically if missing.
+When you decide on permanent locations, edit the `$Settings` block at the top of the script:
+
+```powershell
+$Settings = @{
+    InputDir     = '..\input'     # relative paths resolve from the app\ folder
+    OutputDir    = '..\output'
+    PreviewLines = 12
+}
+```
+
+Any of these work: `'C:\Users\jeff\Documents\CsvConvert\input'`, `'%USERPROFILE%\Downloads'`,
+`'\\server\share\agent-handoff'`, a OneDrive folder. The three folders do not need to be
+siblings — put the script, inputs and outputs wherever suits you. `-InputDir` / `-OutputDir`
+on the command line override the settings for a single run.
+
+## Keys
+
+| Screen      | Keys                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------- |
+| File browser | `↑` `↓` `PgUp` `PgDn` `Home` `End` move · `Enter`/`→` open folder or select file · `Backspace`/`←` parent folder · `P` type or paste a path (folder or file) · `R` refresh · `Q`/`Esc` quit |
+| Options     | `↑` `↓` select · `←` `→` `Space` change value · `Enter` choose · `C` convert · `B`/`Esc` back · `Q` quit |
+| Result      | `Enter`/`Esc`/`B` back to files · `Q` quit                                               |
+| Anywhere    | `Ctrl+C` quits cleanly                                                                |
+
+Going up past a drive root shows the list of drives. The browser lists only sub-folders and
+`.csv` / `.tsv` files; hidden and system items are skipped. Options are remembered for the
+next file within a session; the browser returns to the same folder with the converted file
+selected, so converting several files in a row is quick.
+
+## Options
+
+| Option         | Values                                 | Notes                                                                                                   |
+| -------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Output format  | Markdown · JSON · Both                 | Output name = source name with `.md` / `.json`                                                           |
+| JSON layout    | Pretty · Compact                       | Compact is one line, roughly 30 % fewer bytes/tokens                                                     |
+| Input encoding | Auto-detect · UTF-8 · Windows-1252     | Auto: a BOM or strictly valid UTF-8 ⇒ UTF-8, otherwise Windows-1252 (Excel's plain "CSV" export)         |
+| Delimiter      | Auto-detect · Comma · Semicolon · Tab  | Auto: whichever of `,` `;` TAB appears most in the header line (ties → comma)                            |
+
+The result screen shows what was detected ("Read as: Windows-1252 (detected), delimiter comma
+(detected)") so a wrong guess is visible before the file goes anywhere. If an output file
+already exists you are asked before it is overwritten.
+
+## What the outputs look like
+
+Both formats follow the same rules as the stand-alone `Convert-CsvToMarkdown.ps1` /
+`Convert-CsvToJson.ps1` scripts:
+
+- UTF-8 without BOM; non-ASCII text (José, Zürich, 中文) is written as-is, never `\uXXXX`.
+- Rows where every cell is empty are dropped (Excel's trailing `,,,` lines).
+- **Markdown**: one GFM table. Only `|` is escaped (`\|`); embedded line breaks become a single
+  space; backslashes are left alone so `C:\Data\x.csv` reads correctly in the raw file.
+- **JSON**: an array of objects, keys in header order, always an array even for one row.
+  All values are strings (no type inference — `"007"` stays `"007"`). An empty cell is `""`;
+  a cell missing from a short row is `null`.
+
+## Caveats
+
+- Duplicate column headers make `Import-Csv` fail ("The member X is already present") — the
+  error is shown, nothing is written. Blank headers become `H1`, `H2`, … with a warning shown
+  on the result screen.
+- `Import-Csv` strips leading whitespace from unquoted cells and collapses trailing whitespace
+  to one space; quoted cells keep theirs. Excel does not quote space-padded cells.
+- Rows with more fields than the header lose the extras; shorter rows get empty/`null` cells.
+- A header-only or empty file is rejected ("CSV contains no data rows").
+- Two source files with the same name in different folders map to the same output name — the
+  overwrite prompt will tell you.
+
+## Troubleshooting
+
+- **"running scripts is disabled on this system"** — use the run line above; `-ExecutionPolicy Bypass`
+  applies to that one process only and needs no admin rights. If the file was downloaded, you
+  can instead run `Unblock-File .\CsvConvert.ps1` once.
+- **"cannot be run because it contained a #requires statement for PowerShell 7.0"** — it was
+  started with Windows PowerShell 5.1 (e.g. right-click → *Run with PowerShell*). Use `pwsh`.
+- **`pwsh` is not recognized** — PowerShell 7 is not on the PATH for this prompt; use the full
+  path, usually `"C:\Program Files\PowerShell\7\pwsh.exe"`.
+- **Accented characters look wrong in the preview** — the file was most likely Windows-1252 and
+  auto-detect chose UTF-8 (possible only for files that happen to be valid UTF-8); set
+  *Input encoding* explicitly and convert again.
+- **Terminal looks odd after a crash** — the script restores the screen even on errors, but if
+  pwsh itself was killed, close the tab or run `cls`.
+
+## Before handing files to an agent
+
+Review the output for confidential data first. The `output` folder is the review point:
+nothing leaves your machine unless you copy it somewhere.
+
+---
+
+#Requires -Version 7.0
+<#
+.SYNOPSIS
+    Interactive CSV -> Markdown / JSON converter for handing tabular data to an AI agent.
+
+.DESCRIPTION
+    Single-file text UI for PowerShell 7 in Windows Terminal. No modules, no installs, no admin rights.
+    Browse to a .csv/.tsv file, pick Markdown and/or JSON, convert, preview the result, repeat.
+    Runs in the terminal's alternate screen buffer and restores the terminal on exit
+    (screen contents, cursor, Ctrl+C behaviour, output encoding), then prints a receipt of files written.
+
+.PARAMETER Path
+    A .csv/.tsv file to open directly (skips the file browser), or a folder to start browsing in.
+
+.PARAMETER InputDir
+    Folder the file browser starts in. Overrides $Settings.InputDir for this run only.
+
+.PARAMETER OutputDir
+    Folder the .md/.json files are written to. Overrides $Settings.OutputDir for this run only.
+
+.EXAMPLE
+    pwsh -NoProfile -ExecutionPolicy Bypass -File .\CsvConvert.ps1
+
+.EXAMPLE
+    pwsh -NoProfile -ExecutionPolicy Bypass -File .\CsvConvert.ps1 -Path "C:\Data\inventory.csv"
+#>
+[CmdletBinding()]
+param(
+    [string]$Path,
+    [string]$InputDir,
+    [string]$OutputDir
+)
+
+# =====================================================================
+#  SETTINGS - edit these once the tool is in its permanent home.
+#
+#  Relative paths are resolved from the folder that contains this script,
+#  so the defaults assume this layout:
+#        <root>\app\CsvConvert.ps1      (this file + README.md)
+#        <root>\input\                  (CSV files to convert)
+#        <root>\output\                 (generated .md / .json files)
+#
+#  Absolute paths work too, including OneDrive and UNC shares:
+#        InputDir  = 'C:\Users\you\Documents\CsvConvert\input'
+#        OutputDir = '\\server\share\agent-handoff'
+#  Environment variables are expanded:  '%USERPROFILE%\Downloads'
+# =====================================================================
+$Settings = @{
+    InputDir     = '..\input'     # where the CSV files live; the file browser starts here
+    OutputDir    = '..\output'    # where the .md / .json files are written
+    PreviewLines = 12             # lines of the result shown after a conversion
+}
+# =====================================================================
+
+$ErrorActionPreference = 'Stop'
+$ESC = [char]27    # ESC, for VT control sequences
+
+class QuitSignal : System.Exception { QuitSignal() : base('quit') { } }
+
+$ScriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { $PWD.ProviderPath }
+
+function Resolve-ConfiguredPath([string]$Value, [string]$BaseDir = $ScriptDir) {
+    $v = [Environment]::ExpandEnvironmentVariables($Value.Trim().Trim('"'))
+    if (-not $IsWindows) { $v = $v.Replace('\', '/') }
+    if (-not [IO.Path]::IsPathRooted($v)) { $v = Join-Path $BaseDir $v }
+    return [IO.Path]::GetFullPath($v)
+}
+
+# ---------------------------------------------------------------------
+#  Conversion core (same behaviour as Convert-CsvToMarkdown.ps1 and
+#  Convert-CsvToJson.ps1, plus encoding / delimiter detection)
+# ---------------------------------------------------------------------
+
+function Get-InputEncoding([string]$File, [string]$Choice) {
+    switch ($Choice) {
+        'UTF-8'        { return @{ Encoding = [Text.UTF8Encoding]::new($false); Label = 'UTF-8' } }
+        'Windows-1252' { return @{ Encoding = [Text.Encoding]::GetEncoding(1252); Label = 'Windows-1252' } }
+    }
+    # Auto-detect: a BOM or strictly valid UTF-8 means UTF-8; anything else is treated as
+    # Windows-1252, which is what Excel's plain "CSV (Comma delimited)" export writes.
+    $bytes = [IO.File]::ReadAllBytes($File)
+    if ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
+        return @{ Encoding = [Text.UTF8Encoding]::new($false); Label = 'UTF-8 with BOM (detected)' }
+    }
+    try {
+        [void][Text.UTF8Encoding]::new($false, $true).GetString($bytes)
+        return @{ Encoding = [Text.UTF8Encoding]::new($false); Label = 'UTF-8 (detected)' }
+    }
+    catch {
+        return @{ Encoding = [Text.Encoding]::GetEncoding(1252); Label = 'Windows-1252 (detected)' }
+    }
+}
+
+function Get-Delimiter([string]$File, [Text.Encoding]$Encoding, [string]$Choice) {
+    switch ($Choice) {
+        'Comma'     { return @{ Char = [char]','; Label = 'comma' } }
+        'Semicolon' { return @{ Char = [char]';'; Label = 'semicolon' } }
+        'Tab'       { return @{ Char = [char]"`t"; Label = 'tab' } }
+    }
+    # Auto-detect: whichever of , ; TAB occurs most often in the header line (ties go to comma).
+    $reader = [IO.StreamReader]::new($File, $Encoding, $true)
+    try { $header = $reader.ReadLine() } finally { $reader.Dispose() }
+    if ($null -eq $header) { $header = '' }
+    $counts = @{ ',' = ($header -split ',').Count; ';' = ($header -split ';').Count; "`t" = ($header -split "`t").Count }
+    $best = ','
+    foreach ($c in ';', "`t") { if ($counts[$c] -gt $counts[$best]) { $best = $c } }
+    $label = @{ ',' = 'comma'; ';' = 'semicolon'; "`t" = 'tab' }[$best]
+    return @{ Char = [char]$best; Label = "$label (detected)" }
+}
+
+function Import-CsvRecords([string]$File, [Text.Encoding]$Encoding, [char]$Delimiter) {
+    $warnings = @()
+    $rows = @(Import-Csv -LiteralPath $File -Encoding $Encoding -Delimiter $Delimiter -WarningVariable warnings -WarningAction SilentlyContinue)
+
+    # Drop rows where every cell is empty (Excel often exports trailing ",,," lines).
+    $records = @(
+        foreach ($row in $rows) {
+            if (($row.PSObject.Properties.Value -join '') -ne '') { $row }
+        }
+    )
+    if ($records.Count -eq 0) { throw 'CSV contains no data rows.' }
+    return @{ Records = $records; Warnings = @($warnings | ForEach-Object { [string]$_ }) }
+}
+
+# Only '|' needs escaping in a GFM table cell; newlines are flattened to a space.
+# Backslashes are left alone so Windows paths read correctly in the raw file.
+function Format-MdRow([string[]]$Cells) {
+    $escaped = $Cells -replace '\r\n|\r|\n', ' ' -replace '\|', '\|'
+    '| ' + ($escaped -join ' | ') + ' |'
+}
+
+function Write-MarkdownFile([object[]]$Records, [string]$OutFile) {
+    $columns = @($Records[0].PSObject.Properties.Name)
+    $lines = [Collections.Generic.List[string]]::new()
+    $lines.Add((Format-MdRow $columns))
+    $lines.Add((Format-MdRow (@('---') * $columns.Count)))
+    foreach ($record in $Records) {
+        $lines.Add((Format-MdRow $record.PSObject.Properties.Value))
+    }
+    $lines | Set-Content -LiteralPath $OutFile -Encoding utf8
+}
+
+function Write-JsonFile([object[]]$Records, [string]$OutFile, [bool]$Compress) {
+    # Pipe + -AsArray guarantees a JSON array even when there is exactly one row.
+    $Records | ConvertTo-Json -AsArray -Compress:$Compress | Set-Content -LiteralPath $OutFile -Encoding utf8
+}
+
+function Get-OutputPlan([string]$File, [hashtable]$Opt, [string]$OutDir) {
+    $base = [IO.Path]::GetFileNameWithoutExtension($File)
+    $plan = [Collections.Generic.List[object]]::new()
+    if ($Opt.Format -in 'Markdown', 'Both') { $plan.Add(@{ Kind = 'Markdown'; Path = (Join-Path $OutDir "$base.md");   Size = 0 }) }
+    if ($Opt.Format -in 'JSON', 'Both')     { $plan.Add(@{ Kind = 'JSON';     Path = (Join-Path $OutDir "$base.json"); Size = 0 }) }
+    return , $plan
+}
+
+function Convert-File([string]$File, [hashtable]$Opt, $Plan) {
+    $enc = Get-InputEncoding $File $Opt.Encoding
+    $del = Get-Delimiter $File $enc.Encoding $Opt.Delimiter
+    $loaded = Import-CsvRecords $File $enc.Encoding $del.Char
+    $records = @($loaded.Records)
+    foreach ($p in $Plan) {
+        if ($p.Kind -eq 'Markdown') { Write-MarkdownFile $records $p.Path }
+        else                        { Write-JsonFile $records $p.Path ($Opt.Json -eq 'Compact') }
+        $p.Size = (Get-Item -LiteralPath $p.Path).Length
+        if (-not $script:Produced.Contains($p.Path)) { $script:Produced.Add($p.Path) }
+    }
+    return @{
+        Count     = $records.Count
+        Columns   = @($records[0].PSObject.Properties.Name).Count
+        Encoding  = $enc.Label
+        Delimiter = $del.Label
+        Warnings  = $loaded.Warnings
+    }
+}
+
+# ---------------------------------------------------------------------
+#  TUI primitives
+# ---------------------------------------------------------------------
+
+$script:UI = @{ W = 80; H = 24 }
+$script:Produced = [Collections.Generic.List[string]]::new()
+$script:Status = ''
+$script:StatusIsError = $false
+
+function Set-Status([string]$Text, [switch]$IsError) {
+    $script:Status = $Text
+    $script:StatusIsError = [bool]$IsError
+}
+
+function Update-Size {
+    $script:UI.W = [Console]::WindowWidth
+    $script:UI.H = [Console]::WindowHeight
+}
+
+# Blocks until a key is pressed. Returns $null instead if the window was resized,
+# so the caller re-renders. Ctrl+C (delivered as a key) quits the program.
+function Read-Key {
+    while (-not [Console]::KeyAvailable) {
+        Start-Sleep -Milliseconds 50
+        if ([Console]::WindowWidth -ne $script:UI.W -or [Console]::WindowHeight -ne $script:UI.H) { return $null }
+    }
+    $k = [Console]::ReadKey($true)
+    if ($k.Key -eq [ConsoleKey]::C -and ($k.Modifiers -band [ConsoleModifiers]::Control)) { throw [QuitSignal]::new() }
+    return $k
+}
+
+# A frame is built row by row, then written to the screen in one call (no flicker).
+# Rows that were not written are cleared, so stale content never survives a redraw.
+function New-Frame {
+    [pscustomobject]@{ SB = [Text.StringBuilder]::new(); Row = 0; Written = [bool[]]::new($script:UI.H + 2) }
+}
+
+function Add-Row($Frame, [string]$Text = '', [string]$Style = '', [switch]$Fill, [int]$At = 0) {
+    if ($At -gt 0) { $Frame.Row = $At }
+    else {
+        $Frame.Row++
+        if ($Frame.Row -gt $script:UI.H - 2) { return }   # body never overwrites the status/help rows
+    }
+    if ($Frame.Row -gt $script:UI.H) { return }
+    $w = $script:UI.W - 1
+    if ($w -lt 1) { return }
+    if ($Text.Length -gt $w) { $Text = $Text.Substring(0, [Math]::Max(0, $w - 3)) + '...' }
+    if ($Fill) { $Text = $Text.PadRight($w) }
+    [void]$Frame.SB.Append("$ESC[$($Frame.Row);1H")
+    if ($Style) { [void]$Frame.SB.Append("$ESC[${Style}m").Append($Text).Append("$ESC[0m") }
+    else        { [void]$Frame.SB.Append($Text) }
+    [void]$Frame.SB.Append("$ESC[K")
+    $Frame.Written[$Frame.Row] = $true
+}
+
+function Show-Frame($Frame) {
+    for ($r = 1; $r -le $script:UI.H; $r++) {
+        if (-not $Frame.Written[$r]) { [void]$Frame.SB.Append("$ESC[$r;1H$ESC[2K") }
+    }
+    [Console]::Write($Frame.SB.ToString())
+}
+
+function Add-Header($Frame) {
+    $w = $script:UI.W - 1
+    $left = ' CSV -> Markdown / JSON'
+    $right = 'Output: ' + (Format-PathTail $script:OutDir ([Math]::Max(0, $w - $left.Length - 12))) + ' '
+    $gap = [Math]::Max(1, $w - $left.Length - $right.Length)
+    Add-Row $Frame ($left + (' ' * $gap) + $right) '7' -Fill
+}
+
+function Add-StatusRows($Frame, [string]$Help) {
+    $style = if ($script:StatusIsError) { '31' } else { '2' }
+    Add-Row $Frame (' ' + $script:Status) $style -At ($script:UI.H - 1)
+    Add-Row $Frame $Help '2' -At $script:UI.H
+}
+
+# Word-wraps a message over several rows (for warnings and error text).
+function Add-WrappedRows($Frame, [string]$Text, [string]$Style, [string]$Indent = '   ') {
+    $width = [Math]::Max(10, $script:UI.W - 1 - $Indent.Length)
+    foreach ($paragraph in ($Text -split "`r?`n")) {
+        $line = ''
+        foreach ($word in ($paragraph.Trim() -split ' ')) {
+            if ($line.Length -gt 0 -and $line.Length + 1 + $word.Length -gt $width) { Add-Row $Frame ($Indent + $line) $Style; $line = '' }
+            $line = if ($line) { "$line $word" } else { $word }
+        }
+        Add-Row $Frame ($Indent + $line) $Style
+    }
+}
+
+function Format-PathTail([string]$P, [int]$Max) {
+    if ($Max -lt 4) { return '' }
+    if ($P.Length -le $Max) { return $P }
+    return '...' + $P.Substring($P.Length - ($Max - 3))
+}
+
+function Format-Size([long]$Bytes) {
+    if ($Bytes -ge 1GB) { return '{0:n1} GB' -f ($Bytes / 1GB) }
+    if ($Bytes -ge 1MB) { return '{0:n1} MB' -f ($Bytes / 1MB) }
+    if ($Bytes -ge 1KB) { return '{0:n1} KB' -f ($Bytes / 1KB) }
+    return "$Bytes B"
+}
+
+# Minimal line editor on the status row (typing, Backspace, Enter, Esc). Paste works
+# because Windows Terminal delivers pasted text as keystrokes.
+function Read-TextLine([string]$Prompt, [string]$Initial = '') {
+    $text = $Initial
+    [Console]::Write("$ESC[?25h")
+    try {
+        while ($true) {
+            Update-Size
+            $w = $script:UI.W - 1
+            $shown = $Prompt + $text
+            if ($shown.Length -gt $w) { $shown = $shown.Substring($shown.Length - $w) }
+            [Console]::Write("$ESC[$($script:UI.H - 1);1H$ESC[K$ESC[1m$shown$ESC[0m")
+            $k = Read-Key
+            if ($null -eq $k) { continue }
+            $key = $k.Key.ToString()
+            if ($key -eq 'Enter')  { return $text }
+            if ($key -eq 'Escape') { return $null }
+            if ($key -eq 'Backspace') { if ($text.Length -gt 0) { $text = $text.Substring(0, $text.Length - 1) }; continue }
+            if (-not [char]::IsControl($k.KeyChar)) { $text += $k.KeyChar }
+        }
+    }
+    finally { [Console]::Write("$ESC[?25l") }
+}
+
+# ---------------------------------------------------------------------
+#  Screen 1: file browser
+# ---------------------------------------------------------------------
+
+$script:Browser = @{ Dir = ''; Entries = @(); Sel = 0; Top = 0; Loaded = $false }
+
+# Lists sub-folders and .csv/.tsv files of $Dir. An empty $Dir lists the drives.
+function Get-Entries([string]$Dir) {
+    $items = [Collections.Generic.List[object]]::new()
+    if ([string]::IsNullOrEmpty($Dir)) {
+        foreach ($d in [IO.DriveInfo]::GetDrives()) {
+            if (-not $d.IsReady) { continue }
+            $label = ''
+            try { $label = $d.VolumeLabel } catch { }
+            $name = if ($label) { "$($d.Name)  ($label)" } else { $d.Name }
+            $items.Add(@{ Name = $name; Kind = 'dir'; Path = $d.RootDirectory.FullName })
+        }
+        return , $items
+    }
+    $di = [IO.DirectoryInfo]::new($Dir)
+    if (-not $di.Exists) { throw "folder not found" }
+    $parent = if ($di.Parent) { $di.Parent.FullName } else { '' }
+    $items.Add(@{ Name = '..'; Kind = 'dir'; Path = $parent })
+    $hidden = [IO.FileAttributes]::Hidden -bor [IO.FileAttributes]::System
+    foreach ($d in ($di.GetDirectories() | Where-Object { ($_.Attributes -band $hidden) -eq 0 } | Sort-Object Name)) {
+        $items.Add(@{ Name = $d.Name; Kind = 'dir'; Path = $d.FullName })
+    }
+    foreach ($fi in ($di.GetFiles() | Where-Object { ($_.Extension -in '.csv', '.tsv') -and (($_.Attributes -band $hidden) -eq 0) } | Sort-Object Name)) {
+        $items.Add(@{ Name = $fi.Name; Kind = 'file'; Path = $fi.FullName; Size = $fi.Length; Date = $fi.LastWriteTime })
+    }
+    return , $items
+}
+
+function Set-BrowserDir([string]$NewDir, [string]$SelectName = '') {
+    try { $entries = Get-Entries $NewDir }
+    catch {
+        $label = if ($NewDir) { $NewDir } else { 'drives' }
+        Set-Status "Cannot open '$label': $($_.Exception.Message)" -IsError
+        return
+    }
+    $b = $script:Browser
+    $b.Dir = $NewDir; $b.Entries = $entries; $b.Sel = 0; $b.Top = 0; $b.Loaded = $true
+    if ($SelectName) {
+        for ($i = 0; $i -lt $entries.Count; $i++) { if ($entries[$i].Name -eq $SelectName) { $b.Sel = $i; break } }
+    }
+    $dirs  = @($entries | Where-Object { $_.Kind -eq 'dir' -and $_.Name -ne '..' }).Count
+    $files = @($entries | Where-Object { $_.Kind -eq 'file' }).Count
+    if ($NewDir) { Set-Status ("{0} folder(s), {1} .csv/.tsv file(s)" -f $dirs, $files) }
+    else         { Set-Status "$dirs drive(s)" }
+}
+
+# Opens a folder, or returns the full path of the chosen file.
+function Open-Entry($Entry) {
+    if ($Entry.Kind -eq 'file') { return $Entry.Path }
+    $b = $script:Browser
+    $selectName = if ($Entry.Name -eq '..' -and $b.Dir) { [IO.Path]::GetFileName($b.Dir.TrimEnd('\', '/')) } else { '' }
+    Set-BrowserDir $Entry.Path $selectName
+    return $null
+}
+
+# Typed/pasted path: a folder opens in the browser, a file is selected directly.
+function Open-TypedPath([string]$Typed) {
+    $p = $Typed.Trim().Trim('"')
+    if (-not $p) { return $null }
+    try {
+        $full = Resolve-ConfiguredPath $p $script:Browser.Dir
+        if (Test-Path -LiteralPath $full -PathType Container) { Set-BrowserDir $full; return $null }
+        if (Test-Path -LiteralPath $full -PathType Leaf)      { return $full }
+        Set-Status "Not found: $full" -IsError
+    }
+    catch { Set-Status "Invalid path: $($_.Exception.Message)" -IsError }
+    return $null
+}
+
+function Invoke-Browser {
+    $b = $script:Browser
+    while ($true) {
+        Update-Size
+        $W = $script:UI.W; $H = $script:UI.H
+        $f = New-Frame
+        Add-Header $f
+        $dirLabel = if ($b.Dir) { Format-PathTail $b.Dir ($W - 11) } else { 'Drives' }
+        Add-Row $f " Folder:  $dirLabel"
+        Add-Row $f ''
+
+        $listH = $H - 6
+        $n = $b.Entries.Count
+        if ($H -lt 10 -or $W -lt 40) {
+            Add-Row $f ' Window too small - please enlarge it (min 40 x 10), or press Q to quit.' '31'
+        }
+        else {
+            if ($b.Sel -ge $n) { $b.Sel = [Math]::Max(0, $n - 1) }
+            if ($b.Sel -lt $b.Top) { $b.Top = $b.Sel }
+            if ($b.Sel -ge $b.Top + $listH) { $b.Top = $b.Sel - $listH + 1 }
+            $sizeW = 9; $dateW = 16
+            $nameW = [Math]::Max(10, $W - 1 - 2 - 1 - $sizeW - 2 - $dateW)
+            for ($i = $b.Top; $i -lt [Math]::Min($n, $b.Top + $listH); $i++) {
+                $entry = $b.Entries[$i]
+                $isSel = ($i -eq $b.Sel)
+                $name = if ($entry.Kind -eq 'dir' -and $entry.Name -ne '..') { $entry.Name + [IO.Path]::DirectorySeparatorChar } else { $entry.Name }
+                if ($name.Length -gt $nameW) { $name = $name.Substring(0, $nameW - 3) + '...' }
+                $right = if ($entry.Kind -eq 'file') { (Format-Size $entry.Size).PadLeft($sizeW) + '  ' + $entry.Date.ToString('yyyy-MM-dd HH:mm') } else { '' }
+                $marker = if ($isSel) { '> ' } else { '  ' }
+                $style = if ($isSel) { '7' } elseif ($entry.Kind -eq 'dir') { '36' } else { '' }
+                Add-Row $f ($marker + $name.PadRight($nameW) + ' ' + $right) $style -Fill:$isSel
+            }
+            if ($n -le 1) { Add-Row $f '   (no sub-folders or .csv/.tsv files here)' '2' }
+        }
+        Add-StatusRows $f ' Up/Down move   Enter open/select   Backspace parent   P type a path   R refresh   Q quit'
+        Show-Frame $f
+
+        $k = Read-Key
+        if ($null -eq $k) { continue }
+        $key = $k.Key.ToString()
+        $ch = [char]::ToLowerInvariant($k.KeyChar)
+        $cur = if ($n -gt 0) { $b.Entries[$b.Sel] } else { $null }
+
+        if ($key -eq 'UpArrow')   { if ($b.Sel -gt 0) { $b.Sel-- }; continue }
+        if ($key -eq 'DownArrow') { if ($b.Sel -lt $n - 1) { $b.Sel++ }; continue }
+        if ($key -eq 'PageUp')    { $b.Sel = [Math]::Max(0, $b.Sel - $listH); continue }
+        if ($key -eq 'PageDown')  { $b.Sel = [Math]::Min($n - 1, $b.Sel + $listH); continue }
+        if ($key -eq 'Home')      { $b.Sel = 0; continue }
+        if ($key -eq 'End')       { $b.Sel = [Math]::Max(0, $n - 1); continue }
+        if ($key -eq 'Enter' -or $key -eq 'RightArrow') {
+            if ($cur -and ($key -eq 'Enter' -or $cur.Kind -eq 'dir')) {
+                $picked = Open-Entry $cur
+                if ($picked) { return $picked }
+            }
+            continue
+        }
+        if ($key -eq 'Backspace' -or $key -eq 'LeftArrow') {
+            if ($n -gt 0 -and $b.Entries[0].Name -eq '..') { [void](Open-Entry $b.Entries[0]) }
+            continue
+        }
+        if ($key -eq 'Escape' -or $ch -eq 'q') { throw [QuitSignal]::new() }
+        if ($ch -eq 'r') { Set-BrowserDir $b.Dir; continue }
+        if ($ch -eq 'p') {
+            $typed = Read-TextLine ' Path (folder or .csv file): '
+            if ($null -ne $typed) {
+                $picked = Open-TypedPath $typed
+                if ($picked) { return $picked }
+            }
+            continue
+        }
+    }
+}
+
+# ---------------------------------------------------------------------
+#  Screen 2: options
+# ---------------------------------------------------------------------
+
+$script:Opt = @{ Format = 'Markdown'; Json = 'Pretty'; Encoding = 'Auto-detect'; Delimiter = 'Auto-detect' }
+$script:OptionDefs = @(
+    @{ Key = 'Format';    Label = 'Output format';  Values = @('Markdown', 'JSON', 'Both') }
+    @{ Key = 'Json';      Label = 'JSON layout';    Values = @('Pretty', 'Compact') }
+    @{ Key = 'Encoding';  Label = 'Input encoding'; Values = @('Auto-detect', 'UTF-8', 'Windows-1252') }
+    @{ Key = 'Delimiter'; Label = 'Delimiter';      Values = @('Auto-detect', 'Comma', 'Semicolon', 'Tab') }
+)
+
+function Step-Option($Def, [int]$Direction) {
+    $vals = $Def.Values
+    $i = [Array]::IndexOf($vals, $script:Opt[$Def.Key])
+    $script:Opt[$Def.Key] = $vals[($i + $Direction + $vals.Count) % $vals.Count]
+}
+
+# Asks before overwriting existing output files. Returns $true to proceed.
+function Confirm-Overwrite($Plan) {
+    $existing = @($Plan | Where-Object { Test-Path -LiteralPath $_.Path })
+    if ($existing.Count -eq 0) { return $true }
+    $names = ($existing | ForEach-Object { [IO.Path]::GetFileName($_.Path) }) -join ', '
+    while ($true) {
+        Update-Size
+        $prompt = " $names already exist(s) in the output folder. Overwrite? [Y/N] "
+        if ($prompt.Length -gt $script:UI.W - 1) { $prompt = $prompt.Substring(0, $script:UI.W - 4) + '...' }
+        [Console]::Write("$ESC[$($script:UI.H - 1);1H$ESC[K$ESC[1;33m$prompt$ESC[0m")
+        $k = Read-Key
+        if ($null -eq $k) { continue }
+        $ch = [char]::ToLowerInvariant($k.KeyChar)
+        if ($ch -eq 'y') { return $true }
+        if ($ch -eq 'n' -or $k.Key -eq [ConsoleKey]::Escape) { Set-Status 'Not overwritten.'; return $false }
+    }
+}
+
+# Returns @{ Action = 'convert'; Plan = ... } or @{ Action = 'back' }.
+function Invoke-Options([string]$File) {
+    $defs = $script:OptionDefs
+    $rowCount = $defs.Count + 2          # options + Convert + Back
+    $convertRow = $defs.Count
+    $backRow = $defs.Count + 1
+    $sel = 0
+    $size = (Get-Item -LiteralPath $File).Length
+    Set-Status 'Options are remembered for the next file.'
+    while ($true) {
+        Update-Size
+        $W = $script:UI.W
+        $plan = Get-OutputPlan $File $script:Opt $script:OutDir
+        $names = ($plan | ForEach-Object { [IO.Path]::GetFileName($_.Path) }) -join ', '
+
+        $f = New-Frame
+        Add-Header $f
+        Add-Row $f (' File:     ' + (Format-PathTail $File ($W - 26)) + '  (' + (Format-Size $size) + ')')
+        Add-Row $f (' Writes:   ' + $names + '  ->  ' + (Format-PathTail $script:OutDir ($W - 16 - $names.Length)))
+        Add-Row $f ''
+        for ($i = 0; $i -lt $defs.Count; $i++) {
+            $d = $defs[$i]
+            $dim = ($d.Key -eq 'Json' -and $script:Opt.Format -eq 'Markdown')
+            $style = if ($i -eq $sel) { '7' } elseif ($dim) { '2' } else { '' }
+            Add-Row $f ('   ' + $d.Label.PadRight(16) + '< ' + $script:Opt[$d.Key] + ' >') $style -Fill:($i -eq $sel)
+        }
+        Add-Row $f ''
+        Add-Row $f '   [ Convert ]'       ($(if ($sel -eq $convertRow) { '7' } else { '1' })) -Fill:($sel -eq $convertRow)
+        Add-Row $f '   [ Back to files ]' ($(if ($sel -eq $backRow)    { '7' } else { '' }))  -Fill:($sel -eq $backRow)
+        Add-Row $f ''
+        Add-Row $f ' Auto-detect: UTF-8 vs Windows-1252 is decided from the file bytes; delimiter from the header line.' '2'
+        Add-StatusRows $f ' Up/Down select   Left/Right change   Enter choose   C convert   B back   Q quit'
+        Show-Frame $f
+
+        $k = Read-Key
+        if ($null -eq $k) { continue }
+        $key = $k.Key.ToString()
+        $ch = [char]::ToLowerInvariant($k.KeyChar)
+
+        if ($key -eq 'UpArrow')   { $sel = ($sel - 1 + $rowCount) % $rowCount; continue }
+        if ($key -eq 'DownArrow') { $sel = ($sel + 1) % $rowCount; continue }
+        if ($key -eq 'LeftArrow')  { if ($sel -lt $defs.Count) { Step-Option $defs[$sel] -1 }; continue }
+        if ($key -eq 'RightArrow' -or $key -eq 'Spacebar') { if ($sel -lt $defs.Count) { Step-Option $defs[$sel] 1 }; continue }
+        if ($key -eq 'Enter') {
+            if ($sel -lt $defs.Count) { Step-Option $defs[$sel] 1; continue }
+            if ($sel -eq $backRow) { return @{ Action = 'back' } }
+            $ch = 'c'
+        }
+        if ($ch -eq 'c') {
+            if (Confirm-Overwrite $plan) { return @{ Action = 'convert'; Plan = $plan } }
+            continue
+        }
+        if ($ch -eq 'b' -or $key -eq 'Escape' -or $key -eq 'Backspace') { return @{ Action = 'back' } }
+        if ($ch -eq 'q') { throw [QuitSignal]::new() }
+    }
+}
+
+# ---------------------------------------------------------------------
+#  Screen 3: result + preview
+# ---------------------------------------------------------------------
+
+function Invoke-Result([string]$File, $Plan, $Result, [string]$ErrorText) {
+    $preview = @()
+    if (-not $ErrorText) {
+        $preview = @(Get-Content -LiteralPath $Plan[0].Path -TotalCount $Settings.PreviewLines -Encoding utf8)
+    }
+    Set-Status $(if ($ErrorText) { 'Conversion failed.' } else { 'Done.' }) -IsError:([bool]$ErrorText)
+    while ($true) {
+        Update-Size
+        $W = $script:UI.W
+        $f = New-Frame
+        Add-Header $f
+        Add-Row $f (' Source:   ' + (Format-PathTail $File ($W - 12)))
+        if ($ErrorText) {
+            Add-Row $f ''
+            Add-Row $f ' Conversion failed:' '1;31'
+            Add-WrappedRows $f $ErrorText '31'
+            $partial = @($Plan | Where-Object { $script:Produced.Contains($_.Path) })
+            if ($partial.Count -gt 0) {
+                Add-Row $f ''
+                Add-Row $f ' Written before the error:' '1'
+                foreach ($p in $partial) { Add-Row $f ('   ' + $p.Path) '32' }
+            }
+        }
+        else {
+            Add-Row $f (' Rows:     {0} data rows, {1} columns' -f $Result.Count, $Result.Columns)
+            Add-Row $f (' Read as:  {0}, delimiter {1}' -f $Result.Encoding, $Result.Delimiter)
+            foreach ($warning in $Result.Warnings) { Add-WrappedRows $f ('Warning: ' + $warning) '33' ' ' }
+            Add-Row $f ''
+            Add-Row $f (' Written to ' + (Format-PathTail $script:OutDir ($W - 14)) + ':') '1'
+            foreach ($p in $Plan) { Add-Row $f ('   ' + [IO.Path]::GetFileName($p.Path).PadRight(28) + '  ' + (Format-Size $p.Size)) '32' }
+            Add-Row $f ''
+            Add-Row $f (' Preview of ' + [IO.Path]::GetFileName($Plan[0].Path) + ' (first ' + $Settings.PreviewLines + ' lines):') '1'
+            foreach ($line in $preview) { Add-Row $f ('   ' + $line.Replace("`t", '    ')) '2' }
+        }
+        Add-StatusRows $f ' Enter/Esc back to files   Q quit'
+        Show-Frame $f
+
+        $k = Read-Key
+        if ($null -eq $k) { continue }
+        $key = $k.Key.ToString()
+        $ch = [char]::ToLowerInvariant($k.KeyChar)
+        if ($key -in 'Enter', 'Escape', 'Backspace' -or $ch -eq 'b') { return }
+        if ($ch -eq 'q') { throw [QuitSignal]::new() }
+    }
+}
+
+# ---------------------------------------------------------------------
+#  Main
+# ---------------------------------------------------------------------
+
+$script:InDir  = Resolve-ConfiguredPath $(if ($InputDir)  { $InputDir }  else { $Settings.InputDir })
+$script:OutDir = Resolve-ConfiguredPath $(if ($OutputDir) { $OutputDir } else { $Settings.OutputDir })
+
+$notes = [Collections.Generic.List[string]]::new()
+foreach ($d in @($script:InDir, $script:OutDir)) {
+    if (-not (Test-Path -LiteralPath $d -PathType Container)) {
+        try { [void][IO.Directory]::CreateDirectory($d); $notes.Add("Created folder $d") }
+        catch { throw "Cannot create folder '$d': $($_.Exception.Message)" }
+    }
+}
+
+$startDir = $script:InDir
+$pendingFile = $null
+if ($Path) {
+    $p = Resolve-ConfiguredPath $Path $PWD.ProviderPath
+    if     (Test-Path -LiteralPath $p -PathType Leaf)      { $pendingFile = $p; $startDir = [IO.Path]::GetDirectoryName($p) }
+    elseif (Test-Path -LiteralPath $p -PathType Container) { $startDir = $p }
+    else   { $notes.Add("Not found: $p") }
+}
+
+$prevCtrlC  = [Console]::TreatControlCAsInput
+$prevOutEnc = [Console]::OutputEncoding
+$fatal = $null
+try {
+    [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+    try {
+        [Console]::TreatControlCAsInput = $true
+        [Console]::Write("$ESC[?1049h$ESC[?25l$ESC[H$ESC[2J")      # alternate screen, cursor hidden, cleared
+        Update-Size
+
+        Set-BrowserDir $startDir
+        if (-not $script:Browser.Loaded) { Set-BrowserDir $PWD.ProviderPath }
+        if ($notes.Count -gt 0) { Set-Status ($notes -join '  |  ') }
+
+        while ($true) {
+            $file = $null
+            if ($pendingFile) { $file = $pendingFile; $pendingFile = $null }
+            else              { $file = Invoke-Browser }
+            if (-not $file) { break }
+
+            $choice = Invoke-Options $file
+            if ($choice.Action -ne 'convert') { continue }
+
+            [Console]::Write("$ESC[$($script:UI.H - 1);1H$ESC[K Converting...")
+            $result = $null; $errorText = $null
+            try   { $result = Convert-File $file $script:Opt $choice.Plan }
+            catch { $errorText = $_.Exception.Message }
+            Invoke-Result $file $choice.Plan $result $errorText
+            Set-BrowserDir $script:Browser.Dir ([IO.Path]::GetFileName($file))
+        }
+    }
+    catch [QuitSignal] { }
+    catch { $fatal = $_ }
+    finally {
+        # Restore the terminal: attributes, cursor, main screen buffer, Ctrl+C behaviour.
+        [Console]::Write("$ESC[0m$ESC[?25h$ESC[?1049l")
+        [Console]::TreatControlCAsInput = $prevCtrlC
+        try { [Console]::CursorVisible = $true } catch { }
+    }
+
+    if ($fatal) {
+        Write-Host "CsvConvert stopped with an error: $($fatal.Exception.Message)" -ForegroundColor Red
+        Write-Host $fatal.ScriptStackTrace -ForegroundColor DarkGray
+    }
+    if ($script:Produced.Count -gt 0) {
+        Write-Host 'Files written this session:' -ForegroundColor Green
+        foreach ($p in $script:Produced) { Write-Host "  $p" }
+    }
+    else { Write-Host 'No files written.' }
+}
+finally {
+    [Console]::OutputEncoding = $prevOutEnc
+}
+if ($fatal) { exit 1 }
+
+
