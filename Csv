@@ -793,4 +793,123 @@ finally {
 }
 if ($fatal) { exit 1 }
 
+---
+
+This first-person draft draws on your documented invoicing, process-improvement, and CloudHub leadership work. It avoids claiming unverified year-end results. Items to confirm before submission are listed at the end.
+
+# 2026 Employee Self-Evaluation
+
+## Goal Review
+
+### Goal A. Deliver Measurable Value
+
+**1. What did you do to accomplish this goal?**
+
+I managed recurring delivery invoicing activities for TCS and Salesforce, reconciled reported hours with resource assignments and project identifiers, and worked with IT Finance to address discrepancies and follow up on invoice processing. I documented the existing invoicing process and created clearer checkpoints for receipt, review, approval, and payment status. I also supported the transition of delivery-resource time reporting from ADO to Clarity to address recurring manual reconciliation problems. These activities strengthened the financial information needed for project budget-versus-actual tracking. Within CloudHub, I supported the exception-change reduction objective by making dependencies and readiness requirements visible earlier in planning.
+
+**2. How did you add value to the organization?**
+
+I strengthened financial controls by identifying inconsistencies between vendor billing, recorded hours, and project assignments. This helped Finance and delivery leadership review charges against the appropriate work and understand where corrections were needed. My process-improvement work addressed recurring causes of reconciliation problems, including manually maintained project identifiers and differences in reporting timing. It also supported a more consistent approach to vendor reporting rather than relying on repeated manual intervention.
+
+**3. How did you add value to your team?**
+
+I provided a coordination point for invoicing questions and worked directly with delivery staff, vendors, and Finance to move issues toward resolution. Clearer status checkpoints made it easier to understand what had been submitted, what required review, and who needed to act next. I also explained the Clarity time-entry process to vendor resources and treated reconciliation problems as process issues to solve together, rather than placing the burden on individual contributors.
+
+### Goal B. Deliver on Time
+
+**1. What did you do to accomplish this goal?**
+
+I created and maintained CloudHub migration planning, risk and dependency tracking, ownership documentation, and status reporting. I challenged proposed additions to migration scope, particularly API refactoring, by asking for a clear explanation of the development effort, testing implications, and effect on the overall schedule. I maintained the distinction between migration work, BAU activities, and separate new development. I also raised resource availability, network readiness, vendor lead times, and testing ownership as schedule constraints rather than allowing the plan to assume they were resolved.
+
+**2. How did you add value to the organization?**
+
+I gave leadership a clearer basis for evaluating delivery commitments and deciding where intervention was needed. My planning connected technical work with business participation, vendor readiness, security requirements, and release constraints. This supported a phased delivery approach and made the consequences of unresolved dependencies visible before production commitments were made. When the target date was not supported by the available resources and readiness evidence, I communicated that concern directly.
+
+**3. How did you add value to your team?**
+
+I translated broad project objectives into workstreams, owner-specific actions, and decisions requiring follow-up. I worked with technical leads to distinguish work that could proceed from work dependent on infrastructure, staffing, or business participation. This gave the team a clearer view of priorities and helped keep technical discussions connected to delivery decisions. I also challenged unclear estimates and assumptions so the team could plan against a shared understanding of the work.
+
+### Goal C. Empower Seamless User Experience
+
+**1. What did you do to accomplish this goal?**
+
+My direct contribution to this goal centered on MuleSoft and the CloudHub migration. I coordinated discussions across Middleware, Network, Firewall, Information Security, and architecture stakeholders to address connectivity and operational-readiness requirements. I tracked the FIS connectivity approach, CloudHub-to-on-premises database access, and related application dependencies, including Stonebranch connectivity. I also kept disaster recovery, failover, rollback, and observability requirements visible in planning rather than treating a hosting migration alone as proof of application availability.
+
+**2. How did you add value to the organization?**
+
+I helped the organization evaluate availability as an end-to-end service requirement involving applications, infrastructure, security, and external partners. For example, I maintained a clear distinction between an agreed connectivity design and an implemented, validated production solution. This supported more informed readiness decisions and kept unresolved recovery and connectivity requirements visible. My contribution was to advance the planning and coordination needed for reliable service, without overstating implementation progress.
+
+**3. How did you add value to your team?**
+
+I made availability-related dependencies more concrete by identifying the responsible teams, required decisions, and evidence needed to establish readiness. I helped distinguish settled architecture questions from remaining implementation and validation work, so the team could focus its efforts appropriately. I also connected technical planning with application and vendor testing needs, giving the team a more complete view of what must be demonstrated before migration.
+
+### Goal D. Potpourri — Process Excellence & Standardization
+
+**1. What did you do to accomplish this goal?**
+
+I strengthened process consistency through documented responsibilities, decision records, risk tracking, and explicit approval and readiness checkpoints. For CloudHub, I worked with leadership and technical teams to clarify API-development, platform, and operational responsibilities, including the implications for development and production access. I also documented invoicing processes and worked through opportunities to consolidate time reporting and administrative activities into established enterprise tools and support functions. These contributions supported the broader objective of a consistent Data Management delivery lifecycle.
+
+**2. How did you add value to the organization?**
+
+I made project decisions and responsibilities easier to explain and substantiate. My approach kept approval, implementation, testing, and production readiness distinct, which helped prevent incomplete work from being represented as complete. I also supported risk-based governance by documenting unresolved controls and routing them to the appropriate owners. In administrative processes, I focused on addressing recurring sources of error and clarifying handoffs rather than adding another layer of manual tracking.
+
+**3. How did you add value to your team?**
+
+I gave team members clearer guidance on ownership, handoffs, and the decisions needed to move work forward. Clarifying the boundaries between project management, technical leadership, platform responsibilities, and testing helped expose gaps that otherwise could have surfaced late in delivery. Consistent records also made it easier to revisit decisions without relying on individual recollection. This supported collaboration while preserving accountability for each team’s responsibilities.
+
+### Goal E. Wintrust Omnibus Goal
+
+**1. What did you do to accomplish this goal?**
+
+I applied the “One Team” approach by connecting Data Management leadership, technical teams, business technology officers, application stakeholders, and vendor partners around shared delivery needs. I prepared and presented the CloudHub BTO kickoff completed on July 30 and distributed the presentation with a follow-up communication explaining next steps. I translated technical migration topics into practical business considerations, including application impacts, endpoint changes, testing participation, and phased releases. I also pursued internal-customer process improvements through clearer invoicing checkpoints and support for Clarity-based time reporting.
+
+**2. How did you add value to the organization?**
+
+I made it easier for business and technology partners to understand how the migration would affect them and where their participation would be needed. This established a common starting point for subsequent application and vendor planning. I supported disciplined investment decisions by connecting scope choices with resource needs, delivery risk, and operational requirements. My invoicing and reconciliation work also supported financial stewardship by improving the basis for reviewing vendor charges and project allocations.
+
+**3. How did you add value to your team?**
+
+I helped bridge technical and business perspectives so team members did not have to resolve every dependency within their own functional boundaries. I brought the appropriate stakeholders into discussions, communicated open issues, and sought input from the people closest to the work. I also created reusable presentation material and consistent follow-up messaging that the team could adapt for other audiences. This supported a coordinated approach while recognizing that delivery depends on contributions across several teams.
+
+---
+
+## Values
+
+### Values Employee Summary Response
+
+**Integrity**
+
+I demonstrated integrity by being transparent about financial discrepancies, project risks, and the limits of our readiness. In vendor invoicing, I reviewed differences between reported hours, project assignments, and billing information and worked with the appropriate partners to reconcile them. In CloudHub planning, I raised schedule concerns when the target date was not supported by confirmed resources and resolved dependencies. I also maintained the distinction between an approved design and a solution that had been implemented and validated, so leadership received an accurate picture of progress.
+
+**Accountability**
+
+I took ownership of my coordination responsibilities, including invoicing follow-up, project planning, stakeholder communication, and escalation. When information was inconsistent, I worked to clarify it and update the project’s understanding rather than allowing conflicting assumptions to remain. I sought feedback from leadership and technical partners, particularly when evaluating migration approaches and their delivery implications. I also followed the BTO kickoff with the presentation and next steps, while continuing to distinguish a completed communication milestone from the application and vendor commitments still needed.
+
+**Well-Being**
+
+I considered the effect of project processes on people’s time and workload. For example, I questioned whether additional project stand-ups would duplicate existing technical-team meetings and discussed ways to obtain necessary updates without creating unnecessary meeting demands. I also raised resource-capacity concerns instead of assuming that existing staff could absorb new work alongside their current responsibilities. In invoicing discussions, I acknowledged that recurring reconciliation issues came from weaknesses in the process, which helped keep the conversation constructive and focused on improvement.
+
+**Teamwork**
+
+I worked across organizational boundaries and sought input from technical, business, vendor, and governance partners. The CloudHub BTO kickoff brought multiple business areas into a common discussion of the migration and its expected impacts. Throughout planning, I relied on technical leads for implementation expertise while contributing coordination, scope challenge, and delivery visibility. I respected differences in perspective and worked to turn them into clearer decisions and responsibilities. My focus was on helping the combined team move forward rather than optimizing only the project-management portion of the work.
+
+---
+
+I demonstrated **integrity** by transparently reporting invoice discrepancies, project risks, and readiness gaps so stakeholders could make informed decisions. I showed **accountability** by maintaining delivery plans, following through on invoicing and project commitments, escalating blockers, and seeking feedback to improve my approach. I supported **well-being** by raising resource-capacity concerns, setting realistic expectations, and questioning duplicate meetings to respect team members’ time and workload. I demonstrated **teamwork** throughout CloudHub planning and delivery coordination by bringing business, technical, vendor, and administrative partners together, respecting their expertise, and clarifying shared responsibilities. Across these efforts, I kept discussions constructive and focused on resolving issues and achieving shared outcomes.
+
+---
+
+## Confirm before submission
+
+The project status records reviewed run through **July 30, 2026**. Add later accomplishments and final results where available:
+
+- **Goal A:** Actual exception-change reduction; whether the full invoicing reporting process was operational by June; and evidence of budget-versus-actual tracking across all assigned projects.
+- **Goal B:** Actual delivery results, monthly change-window performance, automated test coverage, and adoption of integrated roadmaps, critical-path reporting, and biweekly risk reviews.
+- **Goal C:** Completed high-availability implementations and availability-reporting/dashboard contributions, including any work on MDM or Stonebranch beyond CloudHub dependencies.
+- **Goal D:** Your contribution to the completed consolidated SDLC, access-control reviews, and confirmed policy/risk-acceptance results.
+- **Goal E:** Verified customer-experience, audit, budget, expense-reduction, and efficiency results attributable to your responsibilities.
+
+**Date clarification:** Goal E lists **12/31/2025** for both the NPS and consolidated IT budget targets. Confirm whether those dates are intentional or should be revised for the 2026 evaluation.
+
+
 
